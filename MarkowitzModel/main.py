@@ -1,5 +1,5 @@
-from MarkowitzModel.src.PortfolioHandler import PortfolioHandler
-from MarkowitzModel.src.SharpeRatioOptimizer import SharpeRatioOptimizer
+from resources.PortfolioHandler import PortfolioHandler
+from resources.SharpeRatioOptimizer import SharpeRatioOptimizer
 
 
 def test_1():
@@ -32,7 +32,7 @@ def test_2():
 def test_3():
     stocks = ['AAPL']
     start_date = '2017-01-01'
-    end_date = '2021-01-01'
+    end_date = '2022-01-01'
     weights = [1]
 
     portfolio_handler = PortfolioHandler(stocks, start_date, end_date, weights)
