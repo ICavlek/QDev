@@ -88,6 +88,8 @@ class DataPlotter:
 
     @staticmethod
     def show_portfolios_scatter(returns, volatilities, xlabel=10, ylabel=6):
+        returns = np.array(returns)
+        volatilities = np.array(volatilities)
         plt.figure(figsize=(10, 6))
         plt.scatter(volatilities, returns, c=returns/volatilities, marker='o')
         plt.grid(True)
@@ -115,73 +117,17 @@ class DataPlotter:
 
 class SharpeRatioOptimizator:
 
-    @staticmethod
-    # C/P From Math Handler because optimization procedure is being done here
-    # Needs refactoring
-    def statistics(weights, returns):
-        portfolio_return = np.sum(returns.mean() * weights) * MathHandler.NUM_TRADING_DAYS
-        portfolio_volatility = np.sqrt(
-            np.dot(
-                np.transpose(
-                    weights
-                ),
-                np.dot(
-                    returns.cov() * MathHandler.NUM_TRADING_DAYS, weights
-                )
-            )
-        )
-        return np.array([
-            portfolio_return, portfolio_volatility, portfolio_return / portfolio_volatility
-        ])
-
-    # scipy optimize module can find the minimum of a given function
-    # therefore, we are returning minimum of -f(x) because it is the same as max of f(x)
-    @staticmethod
-    def min_function_sharpe(weights, returns):
-        return -SharpeRatioOptimizator.statistics(weights, returns)[2]
-
-    # constraint of lambda is that the sum of weights - 1 = 0
-    @staticmethod
-    def optimize_portfolio(weights, returns, num_of_stocks):
-        constraints = {
-            'type': 'eq', 'fun': lambda x: np.sum(x) - 1
-        }
-        bounds = tuple(
-            (0, 1) for i in range(num_of_stocks)
-        )
-        return optimization.minimize(
-            fun=SharpeRatioOptimizator.min_function_sharpe, x0=weights[0], args=returns,
-            method='SLSQP', bounds=bounds, constraints=constraints
-        )
-
-
-class PortfolioHandler:
-    def __init__(self, stocks, start_date, end_date, portfolio_weights=list()):
-        self._stock_data_handler = StockDataHandler(stocks, start_date, end_date)
+    def __init__(self, log_daily_returns, stocks, num_of_generated_portfolios=10000):
+        self._log_daily_returns = log_daily_returns
+        self._stocks = stocks
         self._num_of_stocks = len(stocks)
-        self._log_daily_returns = None
-        self._portfolio_weights = portfolio_weights
+        self._num_of_generated_portfolios = num_of_generated_portfolios
+        self._portfolio_weights = list()
         self._portfolio_means = list()
         self._portfolio_risks = list()
 
-    def initialize_portfolio(self):
-        self._stock_data_handler.initialize_data()
-        self._log_daily_returns = MathHandler.calculate_log_daily_return(self._stock_data_handler.stock_data)
-        if(self._portfolio_weights):
-            self._portfolio_means.append(
-                MathHandler.portfolio_return(
-                    self._log_daily_returns, self._portfolio_weights
-                )
-            )
-            self._portfolio_risks.append(
-                MathHandler.portfolio_risks(
-                    self._log_daily_returns, self._portfolio_weights
-                )
-            )
-
     def generate_portfolios(self):
-        NUM_OF_PORTFOLIOS = 10000
-        for i in range(NUM_OF_PORTFOLIOS):
+        for i in range(self._num_of_generated_portfolios):
             weight = MathHandler.get_random_weight(self._num_of_stocks)
             self._portfolio_weights.append(weight)
             self._portfolio_means.append(
@@ -214,32 +160,91 @@ class PortfolioHandler:
         self._portfolio_means = np.array(self._portfolio_means)
 
     def _print_optimum_portfolio(self, optimum):
-        print("Stocks: ", self._stock_data_handler.stocks)
+        print("Stocks: ", self._stocks)
         print("Optimal porfolio: ", optimum['x'].round(3))
         print(
             "Expected return, volatility and Sharpe ratio: ",
             SharpeRatioOptimizator.statistics(optimum['x'].round(3), self._log_daily_returns)
         )
 
+    @staticmethod
+    def statistics(weights, returns):
+        portfolio_return = MathHandler.portfolio_return(returns, weights)
+        portfolio_volatility = MathHandler.portfolio_risks(returns, weights)
+        return np.array([
+            portfolio_return, portfolio_volatility, portfolio_return / portfolio_volatility
+        ])
+
+    @staticmethod
+    def min_function_sharpe(weights, returns):
+        return -SharpeRatioOptimizator.statistics(weights, returns)[2]
+
+    @staticmethod
+    def optimize_portfolio(weights, returns, num_of_stocks):
+        # constraint of lambda is that the sum of weights - 1 = 0
+        constraints = {
+            'type': 'eq', 'fun': lambda x: np.sum(x) - 1
+        }
+        bounds = tuple(
+            (0, 1) for i in range(num_of_stocks)
+        )
+        return optimization.minimize(
+            fun=SharpeRatioOptimizator.min_function_sharpe, x0=weights[0], args=returns,
+            method='SLSQP', bounds=bounds, constraints=constraints
+        )
+
+
+class PortfolioHandler:
+    def __init__(self, stocks, start_date, end_date, portfolio_weights):
+        self._stock_data_handler = StockDataHandler(stocks, start_date, end_date)
+        self._log_daily_returns = None
+        self._portfolio_weights = portfolio_weights
+        self._portfolio_means = list()
+        self._portfolio_risks = list()
+
+    @property
+    def log_daily_returns(self):
+        return self._log_daily_returns
+
+    def initialize_portfolio(self):
+        self._stock_data_handler.initialize_data()
+        self._log_daily_returns = MathHandler.calculate_log_daily_return(self._stock_data_handler.stock_data)
+        self._portfolio_means.append(
+            MathHandler.portfolio_return(
+                self._log_daily_returns, self._portfolio_weights
+            )
+        )
+        self._portfolio_risks.append(
+            MathHandler.portfolio_risks(
+                self._log_daily_returns, self._portfolio_weights
+            )
+        )
+
+    def print_kpis(self):
+        #print(self._log_daily_returns)
+        #print(MathHandler.annual_expected_return(self._log_daily_returns))
+        #print(MathHandler.annual_covariance(self._log_daily_returns))
+        print("Average portfolio return: ", MathHandler.portfolio_return(self._log_daily_returns, weights))
+        print("Average portfolio risk: ", MathHandler.portfolio_risks(self._log_daily_returns, weights))
+
+    def show_stocks(self):
+        DataPlotter.show_data(self._stock_data_handler.stock_data)
+
 
 def test_1(stocks, start_date, end_date, weights):
-    portfolio_handler = PortfolioHandler(stocks, start_date, end_date)
+    portfolio_handler = PortfolioHandler(stocks, start_date, end_date, weights)
     portfolio_handler.initialize_portfolio()
+    portfolio_handler.print_kpis()
+    portfolio_handler.show_stocks()
 
-    print(portfolio_handler._log_daily_returns)
-    print(MathHandler.annual_expected_return(portfolio_handler._log_daily_returns))
-    print(MathHandler.annual_covariance(portfolio_handler._log_daily_returns))
-    print(MathHandler.portfolio_return(portfolio_handler._log_daily_returns, weights))
-    print(MathHandler.portfolio_risks(portfolio_handler._log_daily_returns, weights))
-
-    DataPlotter.show_data(portfolio_handler._stock_data_handler.stock_data)
 
 def test_2(stocks, start_date, end_date, weights):
-    portfolio_handler = PortfolioHandler(stocks, start_date, end_date)
+    portfolio_handler = PortfolioHandler(stocks, start_date, end_date, weights)
     portfolio_handler.initialize_portfolio()
-    portfolio_handler.generate_portfolios()
-    portfolio_handler.show_portfolios()
-    portfolio_handler.show_portfolios_with_sharpe_ratio()
+
+    sharpe_ratio_optimizator = SharpeRatioOptimizator(portfolio_handler.log_daily_returns, stocks)
+    sharpe_ratio_optimizator.generate_portfolios()
+    sharpe_ratio_optimizator.show_portfolios_with_sharpe_ratio()
 
 if __name__ == '__main__':
     stocks = ['AAPL', 'WMT', 'TSLA', 'GE', 'AMZN', 'DB']
