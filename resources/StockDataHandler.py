@@ -27,3 +27,6 @@ class StockDataHandler:
     @property
     def stocks(self):
         return self._stocks
+
+    def get_last_price_value(self):
+        return self._stock_data.iloc[-1]

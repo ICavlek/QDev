@@ -27,6 +27,10 @@ class PortfolioHandler:
             self._log_daily_returns, self._portfolio_weights
         )
 
+    @property
+    def current_portfolio_price(self):
+        return self._stock_data_handler.get_last_price_value()
+
     def initialize_portfolio(self):
         self._stock_data_handler.initialize_data()
         self._log_daily_returns = MathHandler.calculate_log_daily_return(self._stock_data_handler.stock_data)
