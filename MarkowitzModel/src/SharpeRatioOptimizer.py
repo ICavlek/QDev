@@ -5,7 +5,7 @@ from resources.MathHandler import MathHandler
 from resources.DataPlotter import DataPlotter
 
 
-class SharpeRatioOptimizator:
+class SharpeRatioOptimizer:
     def __init__(self, log_daily_returns, stocks, num_of_generated_portfolios=10000):
         self._log_daily_returns = log_daily_returns
         self._stocks = stocks
@@ -18,13 +18,13 @@ class SharpeRatioOptimizator:
 
     def calculate_optimal_portfolio(self):
         self._generate_portfolios()
-        self._optimum = SharpeRatioOptimizator.optimize_portfolio(
+        self._optimum = SharpeRatioOptimizer.optimize_portfolio(
             self._portfolio_weights, self._log_daily_returns, self._num_of_stocks
         )
 
     def show_portfolios_with_sharpe_ratio(self):
-        val1 = SharpeRatioOptimizator.statistics(self._optimum['x'], self._log_daily_returns)[1]
-        val2 = SharpeRatioOptimizator.statistics(self._optimum['x'], self._log_daily_returns)[0]
+        val1 = SharpeRatioOptimizer.statistics(self._optimum['x'], self._log_daily_returns)[1]
+        val2 = SharpeRatioOptimizer.statistics(self._optimum['x'], self._log_daily_returns)[0]
         DataPlotter.show_portfolios_scatter_with_sharpe_ratio(
             self._optimum, self._log_daily_returns, self._portfolio_means, self._portfolio_risks, val1, val2
         )
@@ -34,7 +34,7 @@ class SharpeRatioOptimizator:
         print("Optimal porfolio: ", self._optimum['x'].round(3))
         print(
             "Expected return, volatility and Sharpe ratio: ",
-            SharpeRatioOptimizator.statistics(
+            SharpeRatioOptimizer.statistics(
                 self._optimum['x'].round(3), self._log_daily_returns
             )
         )
@@ -70,7 +70,7 @@ class SharpeRatioOptimizator:
 
     @staticmethod
     def min_function_sharpe(weights, returns):
-        return -SharpeRatioOptimizator.statistics(weights, returns)[2]
+        return -SharpeRatioOptimizer.statistics(weights, returns)[2]
 
     @staticmethod
     def optimize_portfolio(weights, returns, num_of_stocks):
@@ -82,6 +82,6 @@ class SharpeRatioOptimizator:
             (0, 1) for i in range(num_of_stocks)
         )
         return optimization.minimize(
-            fun=SharpeRatioOptimizator.min_function_sharpe, x0=weights[0], args=returns,
+            fun=SharpeRatioOptimizer.min_function_sharpe, x0=weights[0], args=returns,
             method='SLSQP', bounds=bounds, constraints=constraints
         )

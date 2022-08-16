@@ -1,1 +1,4 @@
 .idea
+MarkowitzModel/__pycache__/
+MarkowitzModel/src/__pycache__/
+resources/__pycache__/

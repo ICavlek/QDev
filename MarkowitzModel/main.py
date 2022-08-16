@@ -1,5 +1,5 @@
 from MarkowitzModel.src.PortfolioHandler import PortfolioHandler
-from MarkowitzModel.src.SharpeRatioOptimizator import SharpeRatioOptimizator
+from MarkowitzModel.src.SharpeRatioOptimizer import SharpeRatioOptimizer
 
 
 def test_1(stocks, start_date, end_date, weights):
@@ -13,7 +13,7 @@ def test_2(stocks, start_date, end_date, weights):
     portfolio_handler = PortfolioHandler(stocks, start_date, end_date, weights)
     portfolio_handler.initialize_portfolio()
 
-    sharpe_ratio_optimizator = SharpeRatioOptimizator(portfolio_handler.log_daily_returns, stocks)
+    sharpe_ratio_optimizator = SharpeRatioOptimizer(portfolio_handler.log_daily_returns, stocks)
     sharpe_ratio_optimizator.calculate_optimal_portfolio()
     sharpe_ratio_optimizator.print_kpis()
     sharpe_ratio_optimizator.show_portfolios_with_sharpe_ratio()
