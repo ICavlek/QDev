@@ -6,18 +6,22 @@ import scipy.optimize as optimization
 
 
 class StockDataHandler:
-    def __init__(self, stocks, start_date, end_date, open_or_close='Close'):
+    def __init__(self, stocks, start_date, end_date, open_or_close='Adj Close'):
         self._stocks = stocks
         self._start_date = start_date
         self._end_date = end_date
         self._open_or_close = open_or_close
         self._stock_data = dict()
+        self._log_daily_return = None
 
-    def download_data(self):
+    def initialize_data(self):
+        self._download_data()
+        self._log_daily_return = MathHandler.calculate_log_daily_return(self._stock_data)
+
+    def _download_data(self):
         for stock in self._stocks:
-            ticker = yf.Ticker(stock)
-            self._stock_data[stock] = \
-                ticker.history(start=start_date, end=end_date)[self._open_or_close]
+            ticker = yf.download(stock, self._start_date, self._end_date)
+            self._stock_data[stock] = ticker[self._open_or_close]
         self._stock_data = pd.DataFrame(self._stock_data)
 
     @property
@@ -28,15 +32,16 @@ class StockDataHandler:
     def stocks(self):
         return self._stocks
 
+    @property
+    def log_daily_return(self):
+        return self._log_daily_return
+
 
 class MathHandler:
     NUM_TRADING_DAYS = 252
 
-    def __init__(self, data):
-        self._log_daily_return = MathHandler.calculate_return(data)
-
     @staticmethod
-    def calculate_return(data):
+    def calculate_log_daily_return(data):
         # Log used because of normalization to measure all variables in comparable metric
         # [1:] exclude Nan
         return np.log(data/data.shift(1))[1:]
@@ -47,24 +52,24 @@ class MathHandler:
         w /= np.sum(w)
         return w
 
-    @property
-    def log_daily_return(self):
-        return self._log_daily_return
+    @staticmethod
+    def annual_expected_return(log_daily_return):
+        return log_daily_return * MathHandler.NUM_TRADING_DAYS
 
-    def annual_expected_return(self):
-        return self._log_daily_return.mean() * MathHandler.NUM_TRADING_DAYS
-
-    def annual_covariance(self):
+    @staticmethod
+    def annual_covariance(log_daily_return):
         # if covariance(i,j) > 0 asset returns move together
         # if covariance(i,j) < 0 asset returns move inversely
         # covariance(i,i) = variance(i)
         # high positive covariance does not provide much diversification
-        return self._log_daily_return.cov() * MathHandler.NUM_TRADING_DAYS
+        return log_daily_return.cov() * MathHandler.NUM_TRADING_DAYS
 
-    def portfolio_return(self, weights):
-        return np.sum(self._log_daily_return.mean()*weights)*MathHandler.NUM_TRADING_DAYS
+    @staticmethod
+    def portfolio_return(log_daily_return, weights):
+        return np.sum(log_daily_return.mean()*weights)*MathHandler.NUM_TRADING_DAYS
 
-    def portfolio_risks(self, weights):
+    @staticmethod
+    def portfolio_risks(log_daily_return, weights):
         # expected portfolio variance
         # portfolio volatility
         #sigma = sqrt(w^T*sigma_covariance_matrix*w)
@@ -74,7 +79,7 @@ class MathHandler:
                     weights
                 ),
                 np.dot(
-                    self._log_daily_return.cov()*MathHandler.NUM_TRADING_DAYS, weights
+                    log_daily_return.cov()*MathHandler.NUM_TRADING_DAYS, weights
                 )
             )
         )
@@ -155,23 +160,33 @@ class SharpeRatioOptimizator:
             method='SLSQP', bounds=bounds, constraints=constraints
         )
 
+
 class PortfolioHandler:
     def __init__(self, stocks, start_date, end_date, num_of_portfolios):
         self._stock_data_handler = StockDataHandler(stocks, start_date, end_date)
-        self._stock_data_handler.download_data()
-        self._math_handler = MathHandler(self._stock_data_handler.stock_data)
         self._num_of_stocks = len(stocks)
         self._num_of_portfolios = num_of_portfolios
         self._portfolio_means = list()
         self._portfolio_risks = list()
         self._portfolio_weights = list()
 
+    def initialize_portfolio(self):
+        self._stock_data_handler.initialize_data()
+
     def generate_portfolios(self):
         for i in range(self._num_of_portfolios):
-            weight = self._math_handler.get_random_weight(self._num_of_stocks)
+            weight = MathHandler.get_random_weight(self._num_of_stocks)
             self._portfolio_weights.append(weight)
-            self._portfolio_means.append(self._math_handler.portfolio_return(weight))
-            self._portfolio_risks.append(self._math_handler.portfolio_risks(weight))
+            self._portfolio_means.append(
+                MathHandler.portfolio_return(
+                    self._stock_data_handler.log_daily_return, weight
+                )
+            )
+            self._portfolio_risks.append(
+                MathHandler.portfolio_risks(
+                    self._stock_data_handler.log_daily_return, weight
+                )
+            )
         self._transform_to_np_arrrays()
 
     def show_portfolios(self):
@@ -179,11 +194,11 @@ class PortfolioHandler:
 
     def show_portfolios_with_sharpe_ratio(self):
         optimum = SharpeRatioOptimizator.optimize_portfolio(
-            self._portfolio_weights, self._math_handler.log_daily_return, self._num_of_stocks
+            self._portfolio_weights, self._stock_data_handler.log_daily_return, self._num_of_stocks
         )
         self._print_optimum_portfolio(optimum)
         DataPlotter.show_portfolios_scatter_with_sharpe_ratio(
-            optimum, self._math_handler.log_daily_return, self._portfolio_means, self._portfolio_risks
+            optimum, self._stock_data_handler.log_daily_return, self._portfolio_means, self._portfolio_risks
         )
 
     def _transform_to_np_arrrays(self):
@@ -196,7 +211,7 @@ class PortfolioHandler:
         print("Optimal porfolio: ", optimum['x'].round(3))
         print(
             "Expected return, volatility and Sharpe ratio: ",
-            SharpeRatioOptimizator.statistics(optimum['x'].round(3), self._math_handler.log_daily_return)
+            SharpeRatioOptimizator.statistics(optimum['x'].round(3), self._stock_data_handler.log_daily_return)
         )
 
 
@@ -204,20 +219,20 @@ def test_1(stocks, start_date, end_date):
     weights = [0.2, 0.05, 0.25, 0.15, 0.3, 0.05]
 
     stock_data_handler = StockDataHandler(stocks, start_date, end_date)
-    stock_data_handler.download_data()
+    stock_data_handler.initialize_data()
 
-    math_handler = MathHandler(stock_data_handler.stock_data)
-    print(math_handler.log_daily_return)
-    print(math_handler.annual_expected_return())
-    print(math_handler.annual_covariance())
-    print(math_handler.portfolio_return(weights))
-    print(math_handler.portfolio_risks(weights))
+    print(stock_data_handler.log_daily_return)
+    print(MathHandler.annual_expected_return(stock_data_handler.log_daily_return))
+    print(MathHandler.annual_covariance(stock_data_handler.log_daily_return))
+    print(MathHandler.portfolio_return(stock_data_handler.log_daily_return, weights))
+    print(MathHandler.portfolio_risks(stock_data_handler.log_daily_return, weights))
 
-    #DataPlotter.show_data(stock_data_handler.stock_data)
+    DataPlotter.show_data(stock_data_handler.stock_data)
 
 def test_2(stocks, start_date, end_date):
     NUM_OF_PORTFOLIOS = 10000
     portfolio_handler = PortfolioHandler(stocks, start_date, end_date, NUM_OF_PORTFOLIOS)
+    portfolio_handler.initialize_portfolio()
     portfolio_handler.generate_portfolios()
     portfolio_handler.show_portfolios()
     portfolio_handler.show_portfolios_with_sharpe_ratio()
@@ -226,5 +241,5 @@ if __name__ == '__main__':
     stocks = ['AAPL', 'WMT', 'TSLA', 'GE', 'AMZN', 'DB']
     start_date = '2012-01-01'
     end_date = '2017-01-01'
-    test_1(stocks, start_date, end_date)
-    #test_2(stocks, start_date, end_date)
+    #test_1(stocks, start_date, end_date)
+    test_2(stocks, start_date, end_date)
