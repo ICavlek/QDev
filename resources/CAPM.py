@@ -18,6 +18,8 @@ class CAPM:
         self._reshape_data()
 
     def calculate_beta_analyticaly(self):
+        # beta = systematic (market) risk, it can only be calculated, not removed
+        # unsystematic risk is removed by diverzifying portfolio
         # beta = covariance_ibm_us500 / covariance_us500_us500 which is variance us500
         # beta = 1 stock moving exactly with the market
         # beta > 1 stock market risk is higher than that of an average stock
