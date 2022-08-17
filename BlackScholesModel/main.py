@@ -10,13 +10,13 @@ def test_1():
 	sigma = 0.2  # volatility of the underlying stock
 	iterations = 1000000  # number of iterations in the Monte-Carlo simulation
 
-	model = BlackScholesAnalytical(S0, E, T, rf, sigma)
-	model.calculate_d1_d2()
-	model.print_option_price_values()
+	model_analytical = BlackScholesAnalytical(S0, E, T, rf, sigma)
+	model_analytical.calculate_d1_d2()
+	model_analytical.print_option_price_values()
 
-	model = BlackScholesMonteCarlo(S0, E, T, rf, sigma, iterations)
-	model.calculate_stock_prices_monte_carlo()
-	model.print_option_price_values()
+	model_monte_carlo = BlackScholesMonteCarlo(S0, E, T, rf, sigma, iterations)
+	model_monte_carlo.calculate_stock_prices_monte_carlo()
+	model_monte_carlo.print_option_price_values()
 
 
 def test_2():
@@ -35,13 +35,13 @@ def test_2():
 	sigma = portfolio_handler.sigma
 	iterations = 1000000
 
-	model = BlackScholesAnalytical(S0, E, T, rf, sigma)
-	model.calculate_d1_d2()
-	model.print_option_price_values()
+	model_analytical = BlackScholesAnalytical(S0, E, T, rf, sigma)
+	model_analytical.calculate_d1_d2()
+	model_analytical.print_option_price_values()
 
-	model = BlackScholesMonteCarlo(S0, E, T, rf, sigma, iterations)
-	model.calculate_stock_prices_monte_carlo()
-	model.print_option_price_values()
+	model_monte_carlo = BlackScholesMonteCarlo(S0, E, T, rf, sigma, iterations)
+	model_monte_carlo.calculate_stock_prices_monte_carlo()
+	model_monte_carlo.print_option_price_values()
 
 
 if __name__ == "__main__":
