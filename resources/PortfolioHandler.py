@@ -12,7 +12,7 @@ class PortfolioHandler:
         self._portfolio_risks = list()
 
     @property
-    def log_daily_returns(self):
+    def daily_returns(self):
         return self._log_daily_returns
 
     @property
@@ -29,7 +29,7 @@ class PortfolioHandler:
 
     @property
     def current_portfolio_price(self):
-        return self._stock_data_handler.get_last_price_value()
+        return self._stock_data_handler.get_last_price_value()[0]
 
     def initialize_portfolio(self):
         self._stock_data_handler.initialize_data()

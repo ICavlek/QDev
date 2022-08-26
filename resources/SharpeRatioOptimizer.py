@@ -33,7 +33,7 @@ class SharpeRatioOptimizer:
         print("Stocks: ", self._stocks)
         print("Optimal porfolio: ", self._optimum['x'].round(3))
         print(
-            "Expected return, volatility and Sharpe ratio: ",
+            "Expected return, risk and Sharpe ratio: ",
             SharpeRatioOptimizer.statistics(
                 self._optimum['x'].round(3), self._log_daily_returns
             )

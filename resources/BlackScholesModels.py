@@ -42,7 +42,7 @@ class BlackScholesMonteCarlo(BlackScholesBase):
 		self._iterations = iterations
 		self._stock_price = None
 
-	def calculate_stock_prices_monte_carlo(self):
+	def calculate_stock_prices(self):
 		# dimensions: 1 dimensional array with as many items as the itrations
 		rand = np.random.normal(0, 1, [1, self._iterations])
 

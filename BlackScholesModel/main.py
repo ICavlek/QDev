@@ -15,7 +15,7 @@ def test_1():
 	model_analytical.print_option_price_values()
 
 	model_monte_carlo = BlackScholesMonteCarlo(S0, E, T, rf, sigma, iterations)
-	model_monte_carlo.calculate_stock_prices_monte_carlo()
+	model_monte_carlo.calculate_stock_prices()
 	model_monte_carlo.print_option_price_values()
 
 
@@ -28,7 +28,7 @@ def test_2():
 	portfolio_handler = PortfolioHandler(stocks, start_date, end_date, weights)
 	portfolio_handler.initialize_portfolio()
 
-	S0 = portfolio_handler.current_portfolio_price[0]
+	S0 = portfolio_handler.current_portfolio_price
 	E = S0
 	T = 20/252 # 1 month
 	rf = 0.05
