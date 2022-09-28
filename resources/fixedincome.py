@@ -753,7 +753,7 @@ class curve:
         ax.set(xlabel='tenor', ylabel='yield',
             title = 'Yields')
         
-        plt.show(block=False)
+        plt.show(block=True)
 
     def plot_discount_factors(self, max_tenor=0):
         """
@@ -967,7 +967,7 @@ class abstract_bond:
         ax.set_title("Coupon Bond Payments")
         ax.set_xlim(0.0)
 
-        plt.show(block=False)
+        plt.show(block=True)
 
 
 
@@ -1134,7 +1134,7 @@ def curve_factory(**kwargs):
         return yield_curve
 
     if "bondlist" in kwargs:
-        if "method" in kwargs and kwargs["method"] is not "pwlinear":
+        if "method" in kwargs and kwargs["method"] != "pwlinear":
             print("For building curves from bonds, only piecewise linear interpolation is available")
             print("Defaulting to piecewise linear interpolation")
         
@@ -1148,7 +1148,7 @@ def curve_factory(**kwargs):
             print("Vector of dates not commensurate with rate vectors")
             return
 
-        if "method" in kwargs and kwargs["method"] is not "pwlinear":
+        if "method" in kwargs and kwargs["method"] != "pwlinear":
             print("For building curves from money market rates, only piecewise linear interpolation is available")
             print("Defaulting to piecewise linear interpolation")
 
