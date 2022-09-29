@@ -142,6 +142,10 @@ class CouponBondApp:
     def show_bond_payments(cls, bonds, labels):
         CouponBond.show_bond_payments(bonds, labels)
 
+    @classmethod
+    def create_coupon_bond(cls, years_to_maturity, face_value, coupon_rate_percent, annual_payment):
+        return fi.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, annual_payment)
+
     def create_yield_curves(self, tenors, rates):
         self._coupon_bond_price_calculator.create_yield_curves(tenors, rates)
 
@@ -157,11 +161,12 @@ class CouponBondApp:
 
 def example_calculate_zero_coupon_bond_price(coupon_bond_app):
     bonds = list()
-    maturity = 5  # 5 years
-    face_value = 10000  # $10000 face value
-    rate = 0  # 6% coupon rate
-    frequency = 0  # semiannual payment, if 0 -> zero coupon bond
-    bond = fi.create_coupon_bond(maturity, face_value, rate, frequency)
+
+    years_to_maturity = 5
+    face_value = 10000
+    coupon_rate_percent = 0
+    no_annual_payment = 0
+    bond = coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, no_annual_payment)
     bonds.append(bond)
 
     labels = ['Bond']
@@ -172,18 +177,18 @@ def example_calculate_zero_coupon_bond_price(coupon_bond_app):
 def example_calculate_multiple_bond_prices(coupon_bond_app):
     bonds = list()
 
-    maturity = 5  # 5 years
-    face_value = 10000  # $10000 face value
-    rate = 6  # 6% coupon rate
-    frequency = 2  # semiannual payment, if 0 -> zero coupon bond
-    bond_1 = fi.create_coupon_bond(maturity, face_value, rate, frequency)
+    years_to_maturity = 5
+    face_value = 10000
+    coupon_rate_percent = 6
+    semiannual_payment = 2
+    bond_1 = coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
     bonds.append(bond_1)
 
-    maturity = 7  # 5 years
-    face_value = 5000  # $10000 face value
-    rate = 4  # 6% coupon rate
-    frequency = 2  # semiannual payment, if 0 -> zero coupon bond
-    bond_2 = fi.create_coupon_bond(maturity, face_value, rate, frequency)
+    years_to_maturity = 7
+    face_value = 5000
+    coupon_rate_percent = 4
+    semiannual_payment = 2
+    bond_2 = coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
     bonds.append(bond_2)
 
     labels = ['Bond1', 'Bond2']
@@ -194,12 +199,14 @@ def example_calculate_multiple_bond_prices(coupon_bond_app):
 def example_calculate_multiple_bond_prices_with_different_maturities(coupon_bond_app):
     bonds = list()
 
-    maturities = [5, 6, 8, 10, 15, 20]  # multiple years
-    face_value = 10000  # $10000 face value
-    rate = 6  # 6% coupon rate
-    frequency = 2  # semiannual payment, if 0 -> zero coupon bond
-    for maturity in maturities:
-        bonds.append(fi.create_coupon_bond(maturity, face_value, rate, frequency))
+    years_to_maturities = [5, 6, 8, 10, 15, 20]
+    face_value = 10000
+    coupon_rate_percent = 6
+    semiannual_payment = 2
+    for years_to_maturity in years_to_maturities:
+        bonds.append(
+            coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
+        )
     labels = ['5Y', '6Y', '8Y', '10Y', '15Y', '20Y']
 
     coupon_bond_app.show_bond_payments(bonds, labels)
@@ -209,12 +216,14 @@ def example_calculate_multiple_bond_prices_with_different_maturities(coupon_bond
 def example_calculate_multiple_bond_prices_with_different_rates(coupon_bond_app):
     bonds = list()
 
-    maturity = 5  # 5 years
-    face_value = 10000  # $10000 face value
-    rates = [6, 8, 10, 15, 20, 30]  # multiple rates
-    frequency = 2  # semiannual payment, if 0 -> zero coupon bond
-    for rate in rates:
-        bonds.append(fi.create_coupon_bond(maturity, face_value, rate, frequency))
+    years_to_maturity = 5
+    face_value = 10000
+    coupon_rates_percent = [6, 8, 10, 15, 20, 30]
+    semiannual_payment = 2
+    for coupon_rate_percent in coupon_rates_percent:
+        bonds.append(
+            coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
+        )
     labels = ['6%', '8%', '10%', '15%', '20%', '30%']
 
     coupon_bond_app.show_bond_payments(bonds, labels)
@@ -224,11 +233,11 @@ def example_calculate_multiple_bond_prices_with_different_rates(coupon_bond_app)
 def example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_bond_app):
     bonds = list()
 
-    maturity = 5  # 5 years
-    face_value = 10000  # $10000 face value
-    rate = 6  # 6% coupon rate
-    frequency = 2  # semiannual payment, if 0 -> zero coupon bond
-    bond = fi.create_coupon_bond(maturity, face_value, rate, frequency)
+    years_to_maturity = 5
+    face_value = 10000
+    coupon_rate_percent = 6
+    semiannual_payment = 2
+    bond = coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
     bonds.append(bond)
 
     labels = ["Bond"]
@@ -238,14 +247,31 @@ def example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_b
 def example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app):
     bonds = list()
 
-    maturities = [5, 6, 8, 10, 15, 20]  # multiple years
-    face_value = 10000  # $10000 face value
-    rate = 6  # 6% coupon rate
-    frequency = 2  # semiannual payment, if 0 -> zero coupon bond
-    for maturity in maturities:
-        bonds.append(fi.create_coupon_bond(maturity, face_value, rate, frequency))
+    years_to_maturities = [5, 6, 8, 10, 15, 20]
+    face_value = 10000
+    coupon_rate_percent = 6
+    semiannual_payment = 2
+    for years_to_maturity in years_to_maturities:
+        bonds.append(
+            coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
+        )
     labels = ['5Y', '6Y', '8Y', '10Y', '15Y', '20Y']
 
+    coupon_bond_app.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
+
+
+def example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_rates(coupon_bond_app):
+    bonds = list()
+
+    years_to_maturity = 5
+    face_value = 10000
+    coupon_rates_percent = [6, 8, 10, 15, 20, 30]
+    semiannual_payment = 2
+    for coupon_rate_percent in coupon_rates_percent:
+        bonds.append(
+            coupon_bond_app.create_coupon_bond(years_to_maturity, face_value, coupon_rate_percent, semiannual_payment)
+        )
+    labels = ['6%', '8%', '10%', '15%', '20%', '30%']
     coupon_bond_app.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
 
 
@@ -265,6 +291,7 @@ def example_coupon_bond_app_1():
     coupon_bond_app.add_prices(bond_prices)
     example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_bond_app)
     example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app)
+    example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_rates(coupon_bond_app)
 
 
 def example_coupon_bond_app_2():
@@ -278,6 +305,12 @@ def example_coupon_bond_app_2():
     example_calculate_multiple_bond_prices(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_maturities(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_rates(coupon_bond_app)
+
+    bond_prices = [8000, 9000, 10000, 11000, 12000]
+    coupon_bond_app.add_prices(bond_prices)
+    example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_bond_app)
+    example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app)
+    example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_rates(coupon_bond_app)
 
 
 if __name__ == '__main__':
