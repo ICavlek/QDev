@@ -22,37 +22,13 @@ class CouponBondAppBase:
         plt.show(block=True)
 
 
-class CouponBondApp(CouponBondAppBase):
-    def __init__(self):
-        self._yield_curves = list()
-
-    def create_yield_curves(self, tenors, rates):
-        if len(tenors) != len(rates):
-            raise Exception("Length of tenors and rates don't match")
-        for i in range(0, len(tenors)):
-            if len(tenors[i]) != len(rates[i]):
-                raise Exception("Length of tenors and rates at index {index} don't match".format(index=i))
-            self._yield_curves.append(fi.curve_factory(dates=tenors[i], rates=rates[i]))
-
+class CouponBond(CouponBondAppBase):
     @classmethod
     def show_bond_payments(cls, bonds, labels, do_plot=True):
         cls._print_header()
         cls._print_bond_payments(bonds, labels)
         if do_plot:
             cls._plot_bond_payments(bonds)
-
-    def show_bond_prices_based_on_yield_curves(self, bonds, labels, do_plot=True):
-        self._print_header()
-        self._print_bond_prices_based_on_yield_curves(bonds, labels)
-        if do_plot:
-            bond_prices_all, rates_all = self._calculate_all_bond_prices_and_rates(bonds)
-            self._plot(rates_all, bond_prices_all, labels, xlabel="Rates/Yields", ylabel="Bond Prices")
-
-    def show_yield_to_maturities_based_on_bond_prices(self, bonds, prices, labels, do_plot=True):
-        self._print_header()
-        if do_plot:
-            bond_prices_all, ytms_all = self._calculate_all_yield_to_maturities(bonds, prices)
-            self._plot(bond_prices_all, ytms_all, labels, xlabel="Bond Prices", ylabel="Rates/Yields")
 
     @classmethod
     def _print_bond_payments(cls, bonds, labels):
@@ -65,18 +41,39 @@ class CouponBondApp(CouponBondAppBase):
         for bond in bonds:
             bond.plot_payments()
 
-    def _print_bond_prices_based_on_yield_curves(self, bonds, labels):
+
+class CouponBondPriceCalculator(CouponBondAppBase):
+    def __init__(self, yield_curves):
+        self._yield_curves = yield_curves
+
+    def create_yield_curves(self, tenors, rates):
+        if len(tenors) != len(rates):
+            raise Exception("Length of tenors and rates don't match")
+        for i in range(0, len(tenors)):
+            if len(tenors[i]) != len(rates[i]):
+                raise Exception("Length of tenors and rates at index {index} don't match".format(index=i))
+            self._yield_curves.append(fi.curve_factory(dates=tenors[i], rates=rates[i]))
+
+    def show_bond_prices_based_on_yield_curves(self, bonds, labels, do_plot=True):
+        self._print_header()
+        bond_prices_all, rates_all = self._calculate_all_bond_prices_and_rates(bonds)
+        self._print_bond_prices_based_on_yield_curves(bonds, bond_prices_all, labels)
+        if do_plot:
+            self._plot(rates_all, bond_prices_all, labels, xlabel="Rates/Yields", ylabel="Bond Prices")
+
+    def _print_bond_prices_based_on_yield_curves(self, bonds, bond_prices_all, labels):
         for i in range(0, len(bonds)):
             self._print_label(labels[i])
             text = "Bond price for yield curve of rate {rate}%: {price}"
-            for yield_curve in self._yield_curves:
-                rate_format = round(yield_curve.rates[0]*100,1)
+            for j in range(0, len(self._yield_curves)):
+                yield_curve = self._yield_curves[j]
+                rate_format = round(yield_curve.rates[0]*100, 1)
                 if len(yield_curve.rates) > 1:
                     rate_format = "{index_0} - {index_len}".format(
-                        index_0=round(yield_curve.rates[0]*100,1),
-                        index_len=round(yield_curve.rates[len(yield_curve.rates)-1]*100,1)
+                        index_0=round(yield_curve.rates[0]*100, 1),
+                        index_len=round(yield_curve.rates[len(yield_curve.rates)-1]*100, 1)
                     )
-                print(text.format(rate=rate_format, price=bonds[i].price(curve=yield_curve)))
+                print(text.format(rate=rate_format, price=bond_prices_all[i][j]))
 
     def _calculate_all_bond_prices_and_rates(self, bonds):
         bond_prices_all = list()
@@ -88,17 +85,6 @@ class CouponBondApp(CouponBondAppBase):
 
         return bond_prices_all, rates_all
 
-    def _calculate_all_yield_to_maturities(self, bonds, prices):
-        bond_prices_all = list()
-        ytms_all = list()
-        for bond in bonds:
-            bond_prices_all.append(prices)
-            ytms = list()
-            for price in prices:
-                ytms.append(bond.YTM(price))
-            ytms_all.append(ytms)
-        return bond_prices_all, ytms_all
-
     def _calculate_bond_prices_and_rates(self, bond):
         bond_prices = list()
         rates = list()
@@ -107,6 +93,66 @@ class CouponBondApp(CouponBondAppBase):
             rates.append(yield_curve.rates[0])
 
         return bond_prices, rates
+
+
+class CouponBondYTMCalculator(CouponBondAppBase):
+    def __init__(self, prices):
+        self._prices = prices
+
+    def add_prices(self, prices):
+        for price in prices:
+            self._prices.append(price)
+
+    def show_yield_to_maturities_based_on_bond_prices(self, bonds, labels, do_plot=True):
+        self._print_header()
+        bond_prices_all, ytms_all = self._calculate_all_yield_to_maturities(bonds)
+        self._print_yield_to_maturities_based_on_prices(bonds, ytms_all, labels)
+        if do_plot:
+            self._plot(bond_prices_all, ytms_all, labels, xlabel="Bond Prices", ylabel="Rates/Yields")
+
+    def _print_yield_to_maturities_based_on_prices(self, bonds, ytms_all, labels):
+        for i in range(0, len(bonds)):
+            self._print_label(labels[i])
+            text = "YTM based on price {price}:"
+            for j in range(0, len(self._prices)):
+                print(text.format(price=self._prices[j]), ytms_all[i][j])
+
+    def _calculate_all_yield_to_maturities(self, bonds):
+        bond_prices_all = list()
+        ytms_all = list()
+        for bond in bonds:
+            bond_prices_all.append(self._prices)
+            ytms = list()
+            for price in self._prices:
+                ytms.append(bond.YTM(price))
+            ytms_all.append(ytms)
+        return bond_prices_all, ytms_all
+
+
+class CouponBondApp:
+    def __init__(self, yield_curves=None, prices=None):
+        if yield_curves is None:
+            yield_curves = list()
+        if prices is None:
+            prices = list()
+        self._coupon_bond_price_calculator = CouponBondPriceCalculator(yield_curves)
+        self._coupon_bond_ytm_calculator = CouponBondYTMCalculator(prices)
+
+    @classmethod
+    def show_bond_payments(cls, bonds, labels):
+        CouponBond.show_bond_payments(bonds, labels)
+
+    def create_yield_curves(self, tenors, rates):
+        self._coupon_bond_price_calculator.create_yield_curves(tenors, rates)
+
+    def show_bond_prices_based_on_yield_curves(self, bonds, labels):
+        self._coupon_bond_price_calculator.show_bond_prices_based_on_yield_curves(bonds, labels)
+
+    def add_prices(self, prices):
+        self._coupon_bond_ytm_calculator.add_prices(prices)
+
+    def show_yield_to_maturities_based_on_bond_prices(self, bonds, labels):
+        self._coupon_bond_ytm_calculator.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
 
 
 def example_calculate_zero_coupon_bond_price(coupon_bond_app):
@@ -185,9 +231,8 @@ def example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_b
     bond = fi.create_coupon_bond(maturity, face_value, rate, frequency)
     bonds.append(bond)
 
-    bond_prices = [8000, 9000, 10000, 11000, 12000]
     labels = ["Bond"]
-    coupon_bond_app.show_yield_to_maturities_based_on_bond_prices(bonds, bond_prices, labels)
+    coupon_bond_app.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
 
 
 def example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app):
@@ -201,29 +246,35 @@ def example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_mult
         bonds.append(fi.create_coupon_bond(maturity, face_value, rate, frequency))
     labels = ['5Y', '6Y', '8Y', '10Y', '15Y', '20Y']
 
+    coupon_bond_app.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
+
 
 def example_coupon_bond_app_1():
     coupon_bond_app = CouponBondApp()
+    example_calculate_zero_coupon_bond_price(coupon_bond_app)
+
     coupon_bond_app.create_yield_curves(
         tenors=[[30], [30], [30], [30], [30]],
         rates=[[5], [6], [7], [8], [9]]
     )
-
-    example_calculate_zero_coupon_bond_price(coupon_bond_app)
     example_calculate_multiple_bond_prices(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_maturities(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_rates(coupon_bond_app)
+
+    bond_prices = [8000, 9000, 10000, 11000, 12000]
+    coupon_bond_app.add_prices(bond_prices)
     example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_bond_app)
+    example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app)
 
 
 def example_coupon_bond_app_2():
     coupon_bond_app = CouponBondApp()
+    example_calculate_zero_coupon_bond_price(coupon_bond_app)
+
     coupon_bond_app.create_yield_curves(
         tenors=[[1], [2, 3]],
         rates=[[5], [6, 7]]
     )
-
-    example_calculate_zero_coupon_bond_price(coupon_bond_app)
     example_calculate_multiple_bond_prices(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_maturities(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_rates(coupon_bond_app)
@@ -231,4 +282,4 @@ def example_coupon_bond_app_2():
 
 if __name__ == '__main__':
     example_coupon_bond_app_1()
-    #example_coupon_bond_app_2()
+    # example_coupon_bond_app_2()
