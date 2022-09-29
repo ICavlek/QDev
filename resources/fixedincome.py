@@ -88,7 +88,7 @@ class pwlinear_interpolator(abstract_interpolator):
         try:
             index = boolvect.index(True)
         except ValueError:
-            print("Warning: extrapolating outside range")
+            #print("Warning: extrapolating outside range")
             return self.ordinates[self.length - 1]
         
         if index == 0:
@@ -113,7 +113,7 @@ class pwlinear_interpolator(abstract_interpolator):
         try:
             index = boolvect.index(True)
         except ValueError:
-            print("Warning: extrapolating outside range")
+            #print("Warning: extrapolating outside range")
             return_val = 1.0 if bump_index == (self.length - 1) else 0.0
             return return_val
         
@@ -201,7 +201,7 @@ class catmull_rom_interpolator(abstract_interpolator):
         try:
             index = boolvect.index(True)
         except ValueError:
-            print("Warning: extrapolating outside range")
+            #print("Warning: extrapolating outside range")
             return self.ordinates[self.length - 1]
         
         if index == 0:
@@ -255,7 +255,7 @@ class natural_spline_interpolator(abstract_interpolator):
         try:
             index = boolvect.index(True)
         except ValueError:
-            print("Warning: extrapolating outside range")
+            #print("Warning: extrapolating outside range")
             return self.ordinates[self.length - 1]
         
         if index == 0:
