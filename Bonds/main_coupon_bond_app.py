@@ -129,18 +129,44 @@ class CouponBondYTMCalculator(CouponBondAppBase):
         return bond_prices_all, ytms_all
 
 
+class CouponBondBootStrapApp:
+    def __init__(self, bonds):
+        self._bonds = bonds
+
+    @property
+    def bonds(self):
+        return self._bonds
+
+    @bonds.setter
+    def bonds(self, bonds):
+        self._bonds = bonds
+
+    def show_bootstrap_yield_curves_based_on_bond_prices(self, prices):
+        for i in range(0, len(prices)):
+            self._bonds[i].set_price(prices[i])
+        yc = fi.curve_factory(bondlist=self._bonds)
+        yc.plot_yields()
+
+
 class CouponBondApp:
-    def __init__(self, yield_curves=None, prices=None):
+    def __init__(self, yield_curves=None, prices=None, bonds=None):
         if yield_curves is None:
             yield_curves = list()
         if prices is None:
             prices = list()
+        if bonds is None:
+            bonds = list()
         self._coupon_bond_price_calculator = CouponBondPriceCalculator(yield_curves)
         self._coupon_bond_ytm_calculator = CouponBondYTMCalculator(prices)
+        self._coupon_bond_bootstrap_app = CouponBondBootStrapApp(bonds)
 
     @classmethod
     def show_bond_payments(cls, bonds, labels):
         CouponBond.show_bond_payments(bonds, labels)
+
+    @classmethod
+    def create_zero_coupon_bond(cls, dates, rates):
+        return fi.bond_factory(dates=dates, rates=rates)
 
     @classmethod
     def create_coupon_bond(cls, years_to_maturity, face_value, coupon_rate_percent, annual_payment):
@@ -157,6 +183,12 @@ class CouponBondApp:
 
     def show_yield_to_maturities_based_on_bond_prices(self, bonds, labels):
         self._coupon_bond_ytm_calculator.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
+
+    def set_bonds(self, bonds):
+        self._coupon_bond_bootstrap_app.bonds = bonds
+
+    def show_bootstrap_yield_curves_based_on_bond_prices(self, prices):
+        self._coupon_bond_bootstrap_app.show_bootstrap_yield_curves_based_on_bond_prices(prices)
 
 
 def example_calculate_zero_coupon_bond_price(coupon_bond_app):
@@ -275,6 +307,28 @@ def example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_mult
     coupon_bond_app.show_yield_to_maturities_based_on_bond_prices(bonds, labels)
 
 
+def example_bootstrap_bonds(coupon_bond_app):
+    bond11 = coupon_bond_app.create_zero_coupon_bond([0.5], [10000])
+    bond12 = coupon_bond_app.create_coupon_bond(1.0, 10000, 7, 2)
+    bond13 = coupon_bond_app.create_coupon_bond(1.5, 50000, 4, 2)
+    bond14 = coupon_bond_app.create_coupon_bond(2.0, 100000, 5, 2)
+    bond15 = coupon_bond_app.create_coupon_bond(2.5, 100000, 7, 2)
+
+    bonds = [bond11, bond12, bond13, bond14, bond15]
+    prices_all = [
+        [9910, 10050, 46500, 96500, 98000],  # Gives inverse yield curve, not good situation on market
+        [10500, 10500, 52500, 105000, 105000],
+        [10500, 10500, 50000, 101000, 103000],  # Zero coupon bond trades at 10500, therefore negative yield
+        [10000, 11000, 53000, 106000, 108000],
+        [9910, 10500, 51000, 100000, 103000]  # Proper trading prices for these bonds, nice yield curve
+    ]
+    # Raising the value of the coupons, while keeping the bond prices constant, will
+    # force the discounting to be stronger, and thus will raise the interest rates.
+    coupon_bond_app.set_bonds(bonds)
+    for prices in prices_all:
+        coupon_bond_app.show_bootstrap_yield_curves_based_on_bond_prices(prices)
+
+
 def example_coupon_bond_app_1():
     coupon_bond_app = CouponBondApp()
     example_calculate_zero_coupon_bond_price(coupon_bond_app)
@@ -293,6 +347,8 @@ def example_coupon_bond_app_1():
     example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app)
     example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_rates(coupon_bond_app)
 
+    example_bootstrap_bonds(coupon_bond_app)
+
 
 def example_coupon_bond_app_2():
     coupon_bond_app = CouponBondApp()
@@ -306,13 +362,7 @@ def example_coupon_bond_app_2():
     example_calculate_multiple_bond_prices_with_different_maturities(coupon_bond_app)
     example_calculate_multiple_bond_prices_with_different_rates(coupon_bond_app)
 
-    bond_prices = [8000, 9000, 10000, 11000, 12000]
-    coupon_bond_app.add_prices(bond_prices)
-    example_calculate_bond_yield_to_maturities_based_on_multiple_prices(coupon_bond_app)
-    example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_maturities(coupon_bond_app)
-    example_calculate_bond_yield_to_maturities_based_on_multiple_prices_and_multiple_rates(coupon_bond_app)
-
 
 if __name__ == '__main__':
     example_coupon_bond_app_1()
-    # example_coupon_bond_app_2()
+    example_coupon_bond_app_2()
